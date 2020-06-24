@@ -17,7 +17,7 @@ org.springframework.boot.autoconfigure.condition.OnBeanCondition,\
 org.springframework.boot.autoconfigure.condition.OnClassCondition,\
 org.springframework.boot.autoconfigure.condition.OnWebApplicationCondition
 
-# Auto Configure
+# Auto Configure  自动配置类
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 org.springframework.boot.autoconfigure.admin.SpringApplicationAdminJmxAutoConfiguration,\
 org.springframework.boot.autoconfigure.aop.AopAutoConfiguration,\

@@ -41,9 +41,9 @@ import org.springframework.core.env.Environment;
  * @author Phillip Webb
  * @since 2.0.0
  */
-@Configuration(proxyBeanMethods = false)
-@ConditionalOnWebApplication
-@EnableConfigurationProperties(ServerProperties.class)
+@Configuration(proxyBeanMethods = false)  //声明这是个配置类
+@ConditionalOnWebApplication  //条件注解
+@EnableConfigurationProperties(ServerProperties.class)  //让ServerProperties配置属性类生效
 public class EmbeddedWebServerFactoryCustomizerAutoConfiguration {
 
 	/**

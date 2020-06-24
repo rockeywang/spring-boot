@@ -265,11 +265,15 @@ public class SpringApplication {
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public SpringApplication(ResourceLoader resourceLoader, Class<?>... primarySources) {
+		//加载resources资源
 		this.resourceLoader = resourceLoader;
 		Assert.notNull(primarySources, "PrimarySources must not be null");
 		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
+		// 设置应用的类型 这里是servlet表示web应用
 		this.webApplicationType = WebApplicationType.deduceFromClasspath();
+		//获取ApplicationContextInitializer,在这里首次加载spring.factories文件
 		setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
+		//获取监听器 这里是二次加载spring.factories文件
 		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
 		this.mainApplicationClass = deduceMainApplicationClass();
 	}

@@ -69,7 +69,7 @@ import org.springframework.util.unit.DataSize;
  * @author Chris Bono
  * @since 1.0.0
  */
-@ConfigurationProperties(prefix = "server", ignoreUnknownFields = true)
+@ConfigurationProperties(prefix = "server", ignoreUnknownFields = true) //用于声明配置属性类，将指定前缀的配置项批量注入到该类中
 public class ServerProperties {
 
 	/**
