@@ -237,8 +237,6 @@ public class SpringApplication {
 
 	private boolean isCustomEnvironment = false;
 
-	private boolean lazyInitialization = false;
-
 	/**
 	 * Create a new {@link SpringApplication} instance. The application context will load
 	 * beans from the specified primary sources (see {@link SpringApplication class-level}
@@ -252,6 +250,8 @@ public class SpringApplication {
 	public SpringApplication(Class<?>... primarySources) {
 		this(null, primarySources);
 	}
+
+	private boolean lazyInitialization = false;
 
 	/**
 	 * Create a new {@link SpringApplication} instance. The application context will load
@@ -271,7 +271,8 @@ public class SpringApplication {
 		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
 		// 设置应用的类型 这里是servlet表示web应用
 		this.webApplicationType = WebApplicationType.deduceFromClasspath();
-		//获取ApplicationContextInitializer,在这里首次加载spring.factories文件
+		//获取
+		// ApplicationContextInitializer,在这里首次加载spring.factories文件
 		setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
 		//获取监听器 这里是二次加载spring.factories文件
 		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
@@ -300,22 +301,31 @@ public class SpringApplication {
 	 * @return a running {@link ApplicationContext}
 	 */
 	public ConfigurableApplicationContext run(String... args) {
+		//1.计时器开始计时
 		StopWatch stopWatch = new StopWatch();
 		stopWatch.start();
 		ConfigurableApplicationContext context = null;
 		Collection<SpringBootExceptionReporter> exceptionReporters = new ArrayList<>();
+		// headless模式复制
 		configureHeadlessProperty();
+		// 发送ApplicationStartingEvent
 		SpringApplicationRunListeners listeners = getRunListeners(args);
 		listeners.starting();
 		try {
+			//发送applicationEnvironmentPreparedEvent
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
 			ConfigurableEnvironment environment = prepareEnvironment(listeners, applicationArguments);
 			configureIgnoreBeanInfo(environment);
-			Banner printedBanner = printBanner(environment);
+			//打印banner
+			Banner printedBanner
+					= printBanner(environment);
+			//创建应用上下文对象
 			context = createApplicationContext();
+			//初始化失败分析器
 			exceptionReporters = getSpringFactoriesInstances(SpringBootExceptionReporter.class,
 					new Class[] { ConfigurableApplicationContext.class }, context);
 			prepareContext(context, environment, listeners, applicationArguments, printedBanner);
+			//刷新上下文
 			refreshContext(context);
 			afterRefresh(context, applicationArguments);
 			stopWatch.stop();
@@ -367,6 +377,14 @@ public class SpringApplication {
 		}
 	}
 
+	/**
+	 * 系统初始调用时机
+	 * @param context
+	 * @param environment
+	 * @param listeners
+	 * @param applicationArguments
+	 * @param printedBanner
+	 */
 	private void prepareContext(ConfigurableApplicationContext context, ConfigurableEnvironment environment,
 			SpringApplicationRunListeners listeners, ApplicationArguments applicationArguments, Banner printedBanner) {
 		context.setEnvironment(environment);
@@ -378,7 +396,7 @@ public class SpringApplication {
 			logStartupProfileInfo(context);
 		}
 		// Add boot specific singleton beans
-		ConfigurableListableBeanFactory beanFactory = context.getBeanFactory();
+		ConfigurableListableBeanFactory beanFactory = context.SBeanFactory();
 		beanFactory.registerSingleton("springApplicationArguments", applicationArguments);
 		if (printedBanner != null) {
 			beanFactory.registerSingleton("springBootBanner", printedBanner);
@@ -416,17 +434,18 @@ public class SpringApplication {
 
 	private SpringApplicationRunListeners getRunListeners(String[] args) {
 		Class<?>[] types = new Class<?>[] { SpringApplication.class, String[].class };
+		//SpringFactoriesLoader
 		return new SpringApplicationRunListeners(logger,
 				getSpringFactoriesInstances(SpringApplicationRunListener.class, types, this, args));
 	}
 
 	private <T> Collection<T> getSpringFactoriesInstances(Class<T> type) {
 		return getSpringFactoriesInstances(type, new Class<?>[] {});
-	}
 
+	}
 	private <T> Collection<T> getSpringFactoriesInstances(Class<T> type, Class<?>[] parameterTypes, Object... args) {
 		ClassLoader classLoader = getClassLoader();
-		// Use names and ensure unique to protect against duplicates
+		// 使用名称并确保唯一，以防止重复
 		Set<String> names = new LinkedHashSet<>(SpringFactoriesLoader.loadFactoryNames(type, classLoader));
 		List<T> instances = createSpringFactoriesInstances(type, parameterTypes, classLoader, args, names);
 		AnnotationAwareOrderComparator.sort(instances);
@@ -733,16 +752,6 @@ public class SpringApplication {
 	}
 
 	/**
-	 * Factory method used to create the {@link BeanDefinitionLoader}.
-	 * @param registry the bean definition registry
-	 * @param sources the sources to load
-	 * @return the {@link BeanDefinitionLoader} that will be used to load beans
-	 */
-	protected BeanDefinitionLoader createBeanDefinitionLoader(BeanDefinitionRegistry registry, Object[] sources) {
-		return new BeanDefinitionLoader(registry, sources);
-	}
-
-	/**
 	 * Refresh the underlying {@link ApplicationContext}.
 	 * @param applicationContext the application context to refresh
 	 * @deprecated since 2.3.0 in favor of
@@ -752,6 +761,16 @@ public class SpringApplication {
 	protected void refresh(ApplicationContext applicationContext) {
 		Assert.isInstanceOf(ConfigurableApplicationContext.class, applicationContext);
 		refresh((ConfigurableApplicationContext) applicationContext);
+	}
+
+	/**
+	 * Factory method used to create the {@link BeanDefinitionLoader}.
+	 * @param registry the bean definition registry
+	 * @param sources the sources to load
+	 * @return the {@link BeanDefinitionLoader} that will be used to load beans
+	 */
+	protected BeanDefinitionLoader createBeanDefinitionLoader(BeanDefinitionRegistry registry, Object[] sources) {
+		return new BeanDefinitionLoader(registry, sources);
 	}
 
 	/**
