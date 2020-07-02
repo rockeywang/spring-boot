@@ -269,13 +269,14 @@ public class SpringApplication {
 		this.resourceLoader = resourceLoader;
 		Assert.notNull(primarySources, "PrimarySources must not be null");
 		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
-		// 设置应用的类型 这里是servlet表示web应用
+		// 设置应用的类型 这里是servlet表示web应用   判断当前是否是web应用
 		this.webApplicationType = WebApplicationType.deduceFromClasspath();
 		//获取
 		// ApplicationContextInitializer,在这里首次加载spring.factories文件
 		setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
 		//获取监听器 这里是二次加载spring.factories文件
 		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
+		// 从多个配置类中找到有main方法的主配置类
 		this.mainApplicationClass = deduceMainApplicationClass();
 	}
 
@@ -308,31 +309,42 @@ public class SpringApplication {
 		Collection<SpringBootExceptionReporter> exceptionReporters = new ArrayList<>();
 		// headless模式复制
 		configureHeadlessProperty();
-		// 发送ApplicationStartingEvent
+		// 从类路径下META-INF/spring.factories获取SpringApplicationRunListeners
 		SpringApplicationRunListeners listeners = getRunListeners(args);
+		// 发布ApplicationStartingEvent  遍历回调SpringApplicationRunListeners中的starting()事件
 		listeners.starting();
 		try {
-			//发送applicationEnvironmentPreparedEvent
+            //封装命令行参数
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
+			//准备环境  完成后遍历回调SpringApplicationRunListeners中的environmentPrepared()事件  发布applicationEnvironmentPreparedEvent
 			ConfigurableEnvironment environment = prepareEnvironment(listeners, applicationArguments);
 			configureIgnoreBeanInfo(environment);
 			//打印banner
-			Banner printedBanner
-					= printBanner(environment);
-			//创建应用上下文对象
+			Banner printedBanner = printBanner(environment);
+			//创建应用上下文对象  根据是否是web环境决定来创建的web还是普通ioc容器
 			context = createApplicationContext();
 			//初始化失败分析器
 			exceptionReporters = getSpringFactoriesInstances(SpringBootExceptionReporter.class,
 					new Class[] { ConfigurableApplicationContext.class }, context);
+			//发布ApplicationPreparedEvent
+			/**
+			 * 准备上下文环境，将environment保存到ioc容器中
+			 * 执行applyInitializers(); 遍历回调之前保存的ApplicationContextInitalizer的initalize()事件
+			 * 遍历回调SpringApplicationRunListeners中的contextPrepared()事件
+			 * prepareContext完成后遍历回调SpringApplicationRunListeners中的contextLoaded()事件
+			 */
 			prepareContext(context, environment, listeners, applicationArguments, printedBanner);
-			//刷新上下文
+			//刷新容器  进行组件的扫描，创建，加载等
 			refreshContext(context);
+			// 从IOC容器中获取所有的ApplicationRunner和CommandLineRunner进行回调（先回调完成ApplicationRunner,在回调commandLineRunner
 			afterRefresh(context, applicationArguments);
 			stopWatch.stop();
 			if (this.logStartupInfo) {
 				new StartupInfoLogger(this.mainApplicationClass).logStarted(getApplicationLog(), stopWatch);
 			}
+			//发布ApplicationStartedEvent
 			listeners.started(context);
+			//执行Spring@Bean的一些操作，如静态方法等
 			callRunners(context, applicationArguments);
 		}
 		catch (Throwable ex) {
@@ -341,12 +353,15 @@ public class SpringApplication {
 		}
 
 		try {
+			//发布ApplicationReadyEvent
 			listeners.running(context);
 		}
 		catch (Throwable ex) {
 			handleRunFailure(context, ex, exceptionReporters, null);
 			throw new IllegalStateException(ex);
 		}
+
+		//启动完成，返回ioc容器
 		return context;
 	}
 
@@ -395,8 +410,8 @@ public class SpringApplication {
 			logStartupInfo(context.getParent() == null);
 			logStartupProfileInfo(context);
 		}
-		// Add boot specific singleton beans
-		ConfigurableListableBeanFactory beanFactory = context.SBeanFactory();
+		// 添加引导特定的单例bean
+		ConfigurableListableBeanFactory beanFactory = context.getBeanFactory();
 		beanFactory.registerSingleton("springApplicationArguments", applicationArguments);
 		if (printedBanner != null) {
 			beanFactory.registerSingleton("springBootBanner", printedBanner);
@@ -408,7 +423,7 @@ public class SpringApplication {
 		if (this.lazyInitialization) {
 			context.addBeanFactoryPostProcessor(new LazyInitializationBeanFactoryPostProcessor());
 		}
-		// Load the sources
+		// 加载资源
 		Set<Object> sources = getAllSources();
 		Assert.notEmpty(sources, "Sources must not be empty");
 		load(context, sources.toArray(new Object[0]));
